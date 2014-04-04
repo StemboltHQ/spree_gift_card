@@ -23,6 +23,7 @@ module Spree
     before_validation :set_values, on: :create
     before_validation :set_expiration_date
 
+    scope :active, -> { where(is_deleted: false) }
     scope :expires_in, ->(days) { where("expiration_date >= ? and expiration_date <= ?",
       days.days.from_now.beginning_of_day, days.days.from_now.end_of_day) }
 

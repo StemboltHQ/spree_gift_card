@@ -6,6 +6,16 @@ describe Spree::Admin::GiftCardsController do
   let(:gc_variant) { create(:master_variant) }
   let(:gc_params) { attributes_for(:gift_card).merge(variant_id: gc_variant.to_param) }
 
+  describe "POST destroy" do
+    let!(:gift_card) { create :gift_card }
+
+    subject { delete :destroy, id: gift_card.id, use_route: :spree }
+
+    specify{ expect{ Spree::GiftCard.find(gift_card.id).is_deleted }.to be_true }
+    specify{ expect{subject}.to_not change{Spree::GiftCard.count} }
+
+  end
+
   describe "POST create" do
     context "when restricting the user" do
       let(:user) { create(:user) }
