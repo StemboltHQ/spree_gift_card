@@ -3,6 +3,17 @@ module Spree
     class GiftCardsController < Spree::Admin::ResourceController
       before_filter :find_gift_card_variants, :except => [:restore, :void, :destroy]
 
+      # Soft Delete.
+      def destroy
+        @object.update(is_deleted: true)
+        flash[:success] = flash_message_for(@object, :successfully_removed)
+
+        respond_with(@object) do |format|
+          format.html {return redirect_to admin_gift_cards_path}
+          format.js { render partial: "spree/admin/shared/destroy" }
+        end
+      end
+
       def update
         @object.attributes = gift_card_params
         @object.current_value = @object.original_value
