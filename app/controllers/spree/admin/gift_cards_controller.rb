@@ -69,7 +69,7 @@ module Spree
 
       def collection
         consolidate_search_parameters
-        @search = Spree::GiftCard.ransack(params[:q])
+        @search = Spree::GiftCard.active.ransack(params[:q])
         @search.result.page(params[:page]).per(Spree::Config[:orders_per_page])
       end
 
