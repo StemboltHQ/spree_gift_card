@@ -3,6 +3,7 @@ Spree::CheckoutController.class_eval do
   Spree::PermittedAttributes.checkout_attributes << :gift_code
 
   append_before_filter :add_gift_code, only: :update
+  append_before_filter :recalculate_gift_cards, only: :update
 
   private
 
@@ -15,5 +16,13 @@ Spree::CheckoutController.class_eval do
         return
       end
     end
+  end
+
+  def recalculate_gift_cards
+    adjustments = @order.adjustments.gift_card
+    adjustments.each do |adj|
+      adj.originator.update_adjustment(adj, @order)
+    end
+    true
   end
 end
