@@ -57,10 +57,8 @@ feature "Admin Gift Card Administration", js: true do
     visit spree.admin_gift_cards_path
     within 'table.index' do
       page.should have_content('First Last')
-      find('[data-action="remove"]').click
-      page.driver.browser.switch_to.alert.accept
+      find('[data-method="delete"]').click
     end
-    sleep 1
     Spree::GiftCard.count.should eql(0)
   end
 

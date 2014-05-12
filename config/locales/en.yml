@@ -1,6 +1,7 @@
 en:
   spree:
     gift_code_not_applied: "The gift code: %{code} could not be applied to your order."
+    could_not_find_user: "Could not find a user by this email address."
     js_confirmation: "You are about to send ${{amount}} to {{sending_to}}. This cannot be undone, are you sure you want to continue?"
     refund_gc: Refund Giftcard
     gift_card_return_confirmation: Are you sure? This will grant the user a gift card in the amount they spent on this order.
@@ -14,7 +15,6 @@ en:
     gift_card_confirm_transfer:
       Are you sure you'd like to transfer this gift certificate? This action
       cannot be undone.
-
     transfer_gift_card: "Transfer Gift Certificate"
     view_my_gift_certificates: "View my gift certificates"
     show_all_gc: "Show redeemed and expired gift certificates"
