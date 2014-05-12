@@ -13,7 +13,7 @@
 <%= form_for [:admin, @gift_card] do |f| %>
   <fieldset class="no-border-top">
     <%= render :partial => 'form', :locals => { :f => f } %>
-    <%= render :partial => 'spree/admin/shared/edit_resource_links' %>
+    <%= render "spree/admin/shared/edit_resource_links", collection_url: admin_gift_cards_path %>
   </fieldset>
 <% end %>
 

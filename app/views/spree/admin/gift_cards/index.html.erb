@@ -4,7 +4,7 @@
 
 <% content_for :page_actions do %>
   <li>
-    <%= button_link_to Spree.t(:new_gift_card), new_object_url, :icon => 'icon-plus' %>
+    <%= button_link_to Spree.t(:new_gift_card), new_admin_gift_card_path, :icon => 'icon-plus' %>
   </li>
 <% end %>
 
@@ -74,15 +74,17 @@
         <td><%= card.note %></td>
         <td><%= card.expiration_date.to_date.to_s(:long) %></td>
         <td class="actions">
-          <%= link_to_edit card, :no_text => true if can?(:edit, card) %>
+          <%= link_to_edit card, url: [:edit_admin, card], :no_text => true if can?(:edit, card) %>
           &nbsp;
-          <%= link_to_delete card, :no_text => true if can?(:delete, card) %>
+          <% if can? :delete, card %>
+            <%= link_to_with_icon "trash", Spree.t(:destroy), [:admin, card], method: :delete, :no_text => true %>
+          <% end %>
           &nbsp;
           <% if can?(:manage, card) %>
             <% if card.current_value > 0 %>
               <%=
                 link_to_with_icon(
-                  'icon-void',
+                  'void',
                   Spree.t(:void_card),
                   void_admin_gift_card_path(card),
                   no_text: true, method: :put,
@@ -92,7 +94,7 @@
             <% else %>
               <%=
                 link_to_with_icon(
-                  'icon-check',
+                  'check',
                   Spree.t(:restore_card),
                   restore_admin_gift_card_path(card),
                   no_text: true, method: :put,

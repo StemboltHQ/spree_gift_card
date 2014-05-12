@@ -1,32 +1,34 @@
 module Spree
   module Admin
-    class GiftCardsController < Spree::Admin::ResourceController
-      before_filter :find_gift_card_variants, :except => [:restore, :void, :destroy]
+    class GiftCardsController < Spree::Admin::BaseController
+      before_filter :load_and_authorize_resource, except: :index
+      before_filter :copy_original_value, only: [:create, :update]
+      before_filter :handle_restricted_user, only: [:create, :update]
 
       def update
-        @object.attributes = gift_card_params
-        @object.current_value = @object.original_value
-        if params[:restrict_user]
-          return unless handle_restricted_user
-        end
-
-        if @object.save
-          flash[:success] = flash_message_for(@object, :successfully_updated)
+        if @gift_card.update_attributes(gift_card_params)
+          flash[:success] = flash_message_for(@gift_card, :successfully_updated)
           redirect_to admin_gift_cards_path
         else
           render :edit
         end
       end
 
-      def create
-        @object.attributes = gift_card_params
-        @object.current_value = @object.original_value
-        if params[:restrict_user]
-          return unless handle_restricted_user
-        end
+      def index
+        consolidate_search_parameters
 
-        if @object.save
-          Spree::GiftCardMailer.gift_card_issued(@object).deliver
+        @search = Spree::GiftCard.accessible_by(current_ability, action_name).
+          ransack(params[:q])
+        @gift_cards = @search.result.
+          page(params[:page]).
+          per(Spree::Config[:orders_per_page])
+      end
+
+      def create
+        @gift_card = Spree::GiftCard.create(gift_card_params)
+
+        if @gift_card.persisted?
+          Spree::GiftCardMailer.gift_card_issued(@gift_card).deliver
           flash[:success] = Spree.t(:successfully_created_gift_card)
           redirect_to admin_gift_cards_path
         else
@@ -34,8 +36,17 @@ module Spree
         end
       end
 
+      def destroy
+        if @gift_card.destroy
+          flash[:success] = Spree.t(:gift_card_destroyed)
+          redirect_to admin_gift_cards_path
+        else
+          redirect_to admin_gift_cards_path
+        end
+      end
+
       def void
-        if @object.current_value > 0 && @object.update(current_value: 0)
+        if @gift_card.current_value > 0 && @gift_card.update(current_value: 0)
           flash[:success] = Spree.t(:gift_card_voided)
           redirect_to admin_gift_cards_path
         else
@@ -45,7 +56,7 @@ module Spree
       end
 
       def restore
-        if @object.current_value == 0 && @object.update(current_value: @object.original_value)
+        if @gift_card.current_value == 0 && @gift_card.update(current_value: @gift_card.original_value)
           flash[:success] = Spree.t(:gift_card_restored)
           redirect_to admin_gift_cards_path
         else
@@ -55,30 +66,40 @@ module Spree
       end
 
       def show
-        if @object
-          @adjustments = Spree::Adjustment.scoped.gift_card.where(source_id: @object.id)
+        if @gift_card
+          @adjustments = Spree::Adjustment.scoped.gift_card.where(source_id: @gift_card.id)
         end
       end
 
       private
 
-      def collection
-        consolidate_search_parameters
-        @search = Spree::GiftCard.ransack(params[:q])
-        @search.result.page(params[:page]).per(Spree::Config[:orders_per_page])
+      def load_and_authorize_resource
+        if params[:id]
+          @gift_card = Spree::GiftCard.find(params[:id])
+        else
+          @gift_card = Spree::GiftCard.new
+        end
+
+        authorize! action_name, @gift_card
+      end
+
+      def copy_original_value
+        params[:gift_card][:current_value] = params[:gift_card][:original_value]
       end
 
       def handle_restricted_user
-        user = Spree.user_class.find_by(email: @object.email)
+        if params[:restrict_user]
+          user = Spree.user_class.find_by email: params[:gift_card][:email]
 
-        if user
-          @object.user_id = user.id
-          true
-        else
-          action = params[:action] == "create" ? :new : :edit
-          flash[:error] = Spree.t(:could_not_find_user)
-          render action
-          false
+          if user
+            params[:gift_card][:user_id] = user.id
+            return true
+          else
+            @gift_card.attributes = gift_card_params
+            @gift_card.errors.add(:email, Spree.t(:could_not_find_user))
+            render (@gift_card.new_record? ? :new : :edit)
+            return false
+          end
         end
       end
 
@@ -89,13 +110,8 @@ module Spree
         end
       end
 
-      def find_gift_card_variants
-        gift_card_product_ids = Product.not_deleted.where(is_gift_card: true).pluck(:id)
-        @gift_card_variants = Variant.joins(:prices).where(["amount > 0 AND product_id IN (?)", gift_card_product_ids]).order("amount")
-      end
-
       def gift_card_params
-        params[object_name].permit(:q, :email, :original_value, :name, :note, :value, :variant_id, :expiration_date)
+        params[:gift_card].permit(:q, :email, :user_id, :current_value, :original_value, :name, :note, :value, :variant_id, :expiration_date)
       end
     end
   end
